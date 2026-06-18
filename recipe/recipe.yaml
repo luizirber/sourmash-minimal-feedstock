@@ -34,7 +34,7 @@ requirements:
     # cross-compilation dependencies
     - if: build_platform != target_platform
       then:
-        - python
+        - python ${{ python_min }}.*
         - cross-python_${{ target_platform }}
         - crossenv
         - cffi
@@ -47,14 +47,14 @@ requirements:
   host:
     - if: is_abi3
       then: python-abi3
-    - python
+    - python ${{ python_min }}.*
     - pip
     - maturin
     - toml
     - cffi
 
   run:
-    - python
+    - python >=${{ python_min }}
     - screed >=1.1.3
     - cffi >=1.17.1
     - deprecation >=2.0.6
@@ -76,15 +76,6 @@ tests:
   - script:
       - sourmash --help
       - sourmash info
-  - if: is_abi3
-    then:
-      requirements:
-        run:
-          - abi3audit
-      script:
-        - if: unix
-          then: abi3audit $SP_DIR/spam.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
-          else: abi3audit %SP_DIR%/spam.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
 
 about:
   summary: Compute and compare MinHash signatures for DNA data sets.

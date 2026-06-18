@@ -1,5 +1,6 @@
 context:
   version: 4.9.4
+  python_min: "3.11"
 
 package:
   name: sourmash-minimal
@@ -10,10 +11,10 @@ source:
   sha256: 28889d11041e398831875c7d17a367e3e5937b095d006752e45c7f2302f4626d
 
 build:
-  number: 1
-  skip:
-    - match(python, "<3.11")
+  number: 2
+  skip: is_abi3 and not is_python_min
   python:
+    version_independent: ${{ is_abi3 }}
     entry_points:
       - sourmash = sourmash.__main__:main
   dynamic_linking:
@@ -45,6 +46,8 @@ requirements:
         - clangdev
 
   host:
+    - if: is_abi3
+      then: python-abi3
     - python
     - pip
     - maturin
@@ -66,10 +69,23 @@ tests:
   - python:
       imports:
         - sourmash
+      python_version:
+        - if: is_abi3
+          then: ${{ python_min }}.*
+        - "*"
       pip_check: false
   - script:
       - sourmash --help
       - sourmash info
+  - if: is_abi3
+    then:
+      requirements:
+        run:
+          - abi3audit
+      script:
+        - if: unix
+          then: abi3audit $SP_DIR/spam.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+          else: abi3audit %SP_DIR%/spam.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
 
 about:
   summary: Compute and compare MinHash signatures for DNA data sets.

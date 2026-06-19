@@ -17,6 +17,19 @@ cargo-bundle-licenses \
     --output ${SRC_DIR}/THIRDPARTY.yml
 popd
 
+if [[ "$target_platform" == "linux-ppc64le" ]]; then
+  # From https://conda-forge.zulipchat.com/#narrow/channel/457337-general/topic/ppc64le.20issues/near/576500347
+  # disable -fno-plt, which causes problems with GCC on PPC
+  CFLAGS="$(echo $CFLAGS | sed 's/-fno-plt //g')"
+  CXXFLAGS="$(echo $CXXFLAGS | sed 's/-fno-plt //g')"
+  # From https://github.com/conda-forge/rattler-build-feedstock/blob/504fd2e977d6597d2c83332a3e7f0fce023b1d25/recipe/recipe.yaml#L38-L39
+  # Rust 1.90 uses lld by default and has issue linking to conda libraries
+  # compiled with newer gcc
+  set +u
+  RUSTFLAGS="$RUSTFLAGS -C link-arg=-fuse-ld=bfd"
+  set -u
+fi
+
 ####################
 # Build shared lib
 ####################

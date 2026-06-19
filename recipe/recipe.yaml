@@ -21,14 +21,41 @@ build:
     missing_dso_allowlist:
       - if: osx
         then: /usr/lib/libresolv.9.dylib
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: ${{ "fat" if not linux and (aarch64 or ppc64le) else "thin" }}
+    content:
+      - if: unix
+        then:
+          # Unix recipe
+          - set -ex
+          - set -o xtrace -o nounset -o pipefail -o errexit
+          - if: ppc64le
+            then:
+              # From https://conda-forge.zulipchat.com/#narrow/channel/457337-general/topic/ppc64le.20issues/near/576500347
+              # disable -fno-plt, which causes problems with GCC on PPC
+              - export CFLAGS="$(echo $CFLAGS | sed 's/-fno-plt //g')"
+              - export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-fno-plt //g')"
+              # From https://github.com/conda-forge/rattler-build-feedstock/blob/504fd2e977d6597d2c83332a3e7f0fce023b1d25/recipe/recipe.yaml#L38-L39
+              # Rust 1.90 uses lld by default and has issue linking to conda libraries
+              # compiled with newer gcc
+              - set +u
+              - export RUSTFLAGS="$RUSTFLAGS -C link-arg=-fuse-ld=bfd"
+              - set -u
+      # Run the maturin build via pip which works for direct and cross-compiled builds.
+      - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
+      - cd src/core
+      - cargo-bundle-licenses --format yaml --output ${{ SRC_DIR }}/THIRDPARTY.yml
 
 requirements:
   build:
     - ${{ compiler('c') }}
     - ${{ stdlib('c') }}
     - ${{ compiler('cxx') }}
-    - ${{ compiler('rust') }} >=1.65.0
+    - ${{ compiler('rust') }} >=1.85.0
     - maturin
+    - cargo-auditable
     - cargo-bundle-licenses
     - liblzma-devel
 

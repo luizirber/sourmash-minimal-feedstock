@@ -1,5 +1,6 @@
 context:
   version: 4.9.4
+  python_check_max: "3.14"
 
 package:
   name: sourmash-minimal
@@ -11,9 +12,9 @@ source:
 
 build:
   number: 2
-  skip: is_abi3 and not is_python_min
+  skip: not is_python_min
   python:
-    version_independent: ${{ is_abi3 }}
+    version_independent: true
     entry_points:
       - sourmash = sourmash.__main__:main
   dynamic_linking:
@@ -45,8 +46,6 @@ requirements:
         - clangdev
 
   host:
-    - if: is_abi3
-      then: python-abi3
     - python ${{ python_min }}.*
     - pip
     - maturin
@@ -69,11 +68,13 @@ tests:
       imports:
         - sourmash
       python_version:
-        - if: is_abi3
-          then: ${{ python_min }}.*
-        - "*"
-      pip_check: false
-  - script:
+        - ${{ python_min }}.*
+        - ${{ python_check_max }}.*
+      pip_check: true
+  - requirements:
+      run:
+        - python ${{ python_min }}.*
+    script:
       - sourmash --help
       - sourmash info
 
